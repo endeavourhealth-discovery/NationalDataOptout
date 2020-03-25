@@ -75,7 +75,7 @@ public class OptOutFeeder {
             BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
             String output;
             while ((output = br.readLine()) != null) {
-                System.out.println(output+"ok");
+                System.out.println(output);
             }
 
             conn.disconnect();
