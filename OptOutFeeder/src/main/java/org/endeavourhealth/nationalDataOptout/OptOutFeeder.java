@@ -56,7 +56,9 @@ public class OptOutFeeder {
      */
     private static void callRefreshNhsNumbers(JSONArray nhsNumbers) {
         try {
-            URL url = new URL("http://localhost:8080/api/mesh/refreshNhsNumbers");
+            JsonNode json = ConfigManager.getConfigurationAsJson("meshpath");
+            String host = json.get("host").asText();
+            URL url = new URL(host+"/api/mesh/refreshNhsNumbers");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setDoOutput(true);
             conn.setRequestMethod("POST");
@@ -95,7 +97,9 @@ public class OptOutFeeder {
             DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             Date today = Calendar.getInstance().getTime();
             String reportDate = df.format(today);
-            File file = new File("d://reportDate.txt");
+            JsonNode json = ConfigManager.getConfigurationAsJson("meshpath");
+            String rootDirectory = json.get("rootdirectory").asText();
+            File file = new File(rootDirectory+"reportDate.txt");
             if (!file.exists()) {
                 file.createNewFile();
             }
@@ -120,12 +124,14 @@ public class OptOutFeeder {
 
         String date = null;
         try {
-            File file = new File("d://reportDate.txt");
+            JsonNode json = ConfigManager.getConfigurationAsJson("meshpath");
+            String rootDirectory = json.get("rootdirectory").asText();
+            File file = new File(rootDirectory+"reportDate.txt");
             Scanner sc = new Scanner(file);
 
             while (sc.hasNextLine())
                 date = sc.nextLine();
-        } catch(FileNotFoundException e) {
+        } catch(Exception e) {
             LOG.info("File not found");
         }
 

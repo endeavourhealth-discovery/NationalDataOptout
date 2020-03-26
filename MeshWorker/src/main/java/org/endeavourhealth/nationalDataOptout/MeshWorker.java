@@ -90,9 +90,10 @@ public class MeshWorker {
      */
     private static void writeNhsNumbersToFile(JSONArray nhsNumbers, Connection connection) {
         try {
-            String PATH = "d://";
+            JsonNode json = ConfigManager.getConfigurationAsJson("meshpath");
+            String rootDirectory = json.get("rootdirectory").asText();
             String localId = RandomStringUtils.randomAlphabetic(5);
-            File directory = new File(PATH.concat("MESH_Outbox"));
+            File directory = new File(rootDirectory.concat("MESH_Outbox"));
             DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
             Date date = new Date();
             String localIdAndDate = localId+"_"+dateFormat.format(date);
@@ -124,8 +125,9 @@ public class MeshWorker {
      */
     private static JSONArray readNhsNumbersFromFile(Connection connection) throws Exception {
         JSONArray nhsNumbers = new JSONArray();
-            String PATH = "d://";
-            File directory = new File(PATH.concat("MESH_Inbox"));
+            JsonNode json = ConfigManager.getConfigurationAsJson("meshpath");
+            String rootDirectory = json.get("rootdirectory").asText();
+            File directory = new File(rootDirectory.concat("MESH_Inbox"));
             File[] listingAllFiles = directory.listFiles();
             ArrayList<File> allFiles = iterateOverFiles(listingAllFiles);
 
@@ -142,7 +144,7 @@ public class MeshWorker {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    if(file.renameTo(new File("d:\\MESH_Inbox_Archive\\"+file.getName()))) {
+                    if(file.renameTo(new File(rootDirectory+"MESH_Inbox_Archive\\"+file.getName()))) {
                         file.delete();
                     }
                 }
@@ -165,7 +167,7 @@ public class MeshWorker {
                         String[] local = localId.split("_");
                         saveStatusToDBLocalId(local[0], (local[1].substring(0,4))+"-"+(local[1].substring(4,6))+"-"+(local[1].substring(6,8)), connection);
                     }
-                    if(controlFile.renameTo(new File("d:\\MESH_Inbox_Archive\\"+controlFile.getName()))) {
+                    if(controlFile.renameTo(new File(rootDirectory+"MESH_Inbox_Archive\\"+controlFile.getName()))) {
                         controlFile.delete();
                     }
                 }
