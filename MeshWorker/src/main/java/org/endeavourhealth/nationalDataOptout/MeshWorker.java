@@ -142,6 +142,9 @@ public class MeshWorker {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
+                    if(file.renameTo(new File("d:\\MESH_Inbox_Archive\\"+file.getName()))) {
+                        file.delete();
+                    }
                 }
 
                 String fileName = file.getName();
@@ -161,6 +164,9 @@ public class MeshWorker {
                         String localId = eElement.getElementsByTagName("LocalId").item(0).getTextContent();
                         String[] local = localId.split("_");
                         saveStatusToDBLocalId(local[0], (local[1].substring(0,4))+"-"+(local[1].substring(4,6))+"-"+(local[1].substring(6,8)), connection);
+                    }
+                    if(controlFile.renameTo(new File("d:\\MESH_Inbox_Archive\\"+controlFile.getName()))) {
+                        controlFile.delete();
                     }
                 }
             }
