@@ -13,6 +13,9 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.*;
@@ -114,9 +117,39 @@ public class MeshWorker {
                 updateLocalIdToDB(nhsNum, localId, connection);
             }
             bw.close();
+
+            DTSControl dtsControl = new DTSControl();
+            dtsControl.setWorkFlowId("X26HC036");
+            dtsControl.setToDTS("SPINE_NTT_UPHOLDING");
+            dtsControl.setLocalId(localIdAndDate);
+
+            FileWriter fwCf = new FileWriter(controlFile.getAbsoluteFile());
+            BufferedWriter bwCf = new BufferedWriter(fwCf);
+            bwCf.write(jaxbObjectToXML(dtsControl)+",\r\n");
+            bwCf.close();
+
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     *
+     * @param dtsControl
+     * @return
+     */
+    private static String jaxbObjectToXML(DTSControl dtsControl) {
+        StringWriter sw = new StringWriter();
+        try {
+            JAXBContext jaxbContext = JAXBContext.newInstance(DTSControl.class);
+            Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
+            jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+            jaxbMarshaller.marshal(dtsControl, sw);
+
+        } catch (JAXBException e) {
+            e.printStackTrace();
+        }
+        return sw.toString();
     }
 
     /**
@@ -125,53 +158,53 @@ public class MeshWorker {
      */
     private static JSONArray readNhsNumbersFromFile(Connection connection) throws Exception {
         JSONArray nhsNumbers = new JSONArray();
-            JsonNode json = ConfigManager.getConfigurationAsJson("meshpath");
-            String rootDirectory = json.get("rootdirectory").asText();
-            File directory = new File(rootDirectory.concat("MESH_Inbox"));
-            File[] listingAllFiles = directory.listFiles();
-            ArrayList<File> allFiles = iterateOverFiles(listingAllFiles);
+        JsonNode json = ConfigManager.getConfigurationAsJson("meshpath");
+        String rootDirectory = json.get("rootdirectory").asText();
+        File directory = new File(rootDirectory.concat("MESH_Inbox"));
+        File[] listingAllFiles = directory.listFiles();
+        ArrayList<File> allFiles = iterateOverFiles(listingAllFiles);
 
-            for (File file : allFiles) {
-                if(file != null) {
-                    try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-                        String line;
-                        while ((line = br.readLine()) != null) {
-                            line = line.substring(0, line.length() - 1);
-                            nhsNumbers.put(line);
-                        }
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
+        for (File file : allFiles) {
+            if(file != null) {
+                try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        line = line.substring(0, line.length() - 1);
+                        nhsNumbers.put(line);
                     }
-                    if(file.renameTo(new File(rootDirectory+"MESH_Inbox_Archive\\"+file.getName()))) {
-                        file.delete();
-                    }
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-
-                String fileName = file.getName();
-                fileName = fileName.substring(0, fileName.lastIndexOf('.'));
-                File controlFile  = new File(directory.getAbsolutePath().concat("//"+fileName+".ctl"));
-                if(controlFile != null) {
-                    DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-                    DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-                    Document doc = dBuilder.parse(controlFile);
-
-                    doc.getDocumentElement().normalize();
-                    NodeList nList = doc.getElementsByTagName("DTSControl");
-
-                    if(nList != null) {
-                        Node elemNode = nList.item(0);
-                        Element eElement = (Element) elemNode;
-                        String localId = eElement.getElementsByTagName("LocalId").item(0).getTextContent();
-                        String[] local = localId.split("_");
-                        saveStatusToDBLocalId(local[0], (local[1].substring(0,4))+"-"+(local[1].substring(4,6))+"-"+(local[1].substring(6,8)), connection);
-                    }
-                    if(controlFile.renameTo(new File(rootDirectory+"MESH_Inbox_Archive\\"+controlFile.getName()))) {
-                        controlFile.delete();
-                    }
+                if(file.renameTo(new File(rootDirectory+"MESH_Inbox_Archive\\"+file.getName()))) {
+                    file.delete();
                 }
             }
+
+            String fileName = file.getName();
+            fileName = fileName.substring(0, fileName.lastIndexOf('.'));
+            File controlFile  = new File(directory.getAbsolutePath().concat("//"+fileName+".ctl"));
+            if(controlFile != null) {
+                DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+                Document doc = dBuilder.parse(controlFile);
+
+                doc.getDocumentElement().normalize();
+                NodeList nList = doc.getElementsByTagName("DTSControl");
+
+                if(nList != null) {
+                    Node elemNode = nList.item(0);
+                    Element eElement = (Element) elemNode;
+                    String localId = eElement.getElementsByTagName("LocalId").item(0).getTextContent();
+                    String[] local = localId.split("_");
+                    saveStatusToDBLocalId(local[0], (local[1].substring(0,4))+"-"+(local[1].substring(4,6))+"-"+(local[1].substring(6,8)), connection);
+                }
+                if(controlFile.renameTo(new File(rootDirectory+"MESH_Inbox_Archive\\"+controlFile.getName()))) {
+                    controlFile.delete();
+                }
+            }
+        }
         return nhsNumbers;
     }
 

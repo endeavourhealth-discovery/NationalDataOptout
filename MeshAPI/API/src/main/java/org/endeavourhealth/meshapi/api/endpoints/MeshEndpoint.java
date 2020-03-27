@@ -79,10 +79,10 @@ public class MeshEndpoint {
         JSONArray nhsNumbersReqJSON = new JSONArray(content.toString());
         JSONArray optOutResJSON = new JSONArray();
         for (int nhsCount = 0; nhsCount < nhsNumbersReqJSON.length(); nhsCount++) {
-            boolean validInd = isValidNhsNumber((String) nhsNumbersReqJSON.get(nhsCount));
+            /*boolean validInd = isValidNhsNumber((String) nhsNumbersReqJSON.get(nhsCount));
             if(validInd == Boolean.FALSE) {
-                return Response.status(Response.Status.BAD_REQUEST).build();
-            }
+                optOutResJSON.put(nationalOptoutStatus.getNhsNumber());
+            }*/
             NationalOptoutStatus nationalOptoutStatus = viewerDAL.getNhsDetails((String) nhsNumbersReqJSON.get(nhsCount));
             if (nationalOptoutStatus == null) {
                 viewerDAL.insertNhsNumber((String) nhsNumbersReqJSON.get(nhsCount));
@@ -129,7 +129,7 @@ public class MeshEndpoint {
         for (int nhsCount = 0; nhsCount < nhsNumbersReqJSON.length(); nhsCount++) {
             boolean validInd = isValidNhsNumber((String) nhsNumbersReqJSON.get(nhsCount));
             if(validInd == Boolean.FALSE) {
-                return Response.status(Response.Status.BAD_REQUEST).build();
+                optOutResJSON.put(nationalOptoutStatus.getNhsNumber());
             }
             NationalOptoutStatus nationalOptoutStatus = viewerDAL.getNhsDetails((String) nhsNumbersReqJSON.get(nhsCount));
             if (nationalOptoutStatus == null) {
