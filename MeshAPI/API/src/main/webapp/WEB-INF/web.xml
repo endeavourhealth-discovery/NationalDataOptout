@@ -56,6 +56,33 @@
         <url-pattern>/public/*</url-pattern>
     </servlet-mapping>
 
+    <!-- ============================================ -->
+    <!-- JEE security settings - Keycloak integration -->
+    <!-- ============================================ -->
+
+    <!-- set the class to provide keycloak.json -->
+    <context-param>
+        <param-name>keycloak.config.resolver</param-name>
+        <param-value>org.endeavourhealth.common.security.keycloak.KeycloakConfigResolverImpl</param-value>
+    </context-param>
+
+    <!-- API is private and requires the user to authenticate and be an EDS user -->
+    <security-constraint>
+        <web-resource-collection>
+            <web-resource-name>api</web-resource-name>
+            <url-pattern>/api/*</url-pattern>
+        </web-resource-collection>
+        <auth-constraint>
+            <role-name>eds_user</role-name>
+        </auth-constraint>
+    </security-constraint>
+
+    <!-- use Keycloak authentication valve installed in the container -->
+    <login-config>
+        <auth-method>KEYCLOAK</auth-method>
+        <realm-name>Endeavour</realm-name>
+    </login-config>
+
     <!-- ===== STARTUP ===== -->
     <context-param>
         <param-name>app_id</param-name>

@@ -129,7 +129,7 @@ public class MeshEndpoint {
         for (int nhsCount = 0; nhsCount < nhsNumbersReqJSON.length(); nhsCount++) {
             boolean validInd = isValidNhsNumber((String) nhsNumbersReqJSON.get(nhsCount));
             if(validInd == Boolean.FALSE) {
-                optOutResJSON.put(nationalOptoutStatus.getNhsNumber());
+                optOutResJSON.put((String) nhsNumbersReqJSON.get(nhsCount));
             }
             NationalOptoutStatus nationalOptoutStatus = viewerDAL.getNhsDetails((String) nhsNumbersReqJSON.get(nhsCount));
             if (nationalOptoutStatus == null) {
