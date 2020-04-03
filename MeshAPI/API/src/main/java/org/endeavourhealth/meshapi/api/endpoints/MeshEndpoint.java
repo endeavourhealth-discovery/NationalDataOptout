@@ -1,12 +1,12 @@
 package org.endeavourhealth.meshapi.api.endpoints;
 
 import com.google.common.base.Strings;
+import org.endeavourhealth.meshapi.common.dal.MeshJDBCDAL;
 import org.endeavourhealth.meshapi.common.models.NationalOptoutStatus;
 import org.json.JSONArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.endeavourhealth.meshapi.common.dal.RecordViewerJDBCDAL;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -19,7 +19,7 @@ import java.util.Date;
 @Path("mesh")
 public class MeshEndpoint {
     private static final Logger LOG = LoggerFactory.getLogger(MeshEndpoint.class);
-    RecordViewerJDBCDAL viewerDAL;
+    MeshJDBCDAL viewerDAL;
 
     /**
      *
@@ -32,7 +32,7 @@ public class MeshEndpoint {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response refreshNhsNumbers(InputStream nhsNumbersRequest) throws Exception {
-        viewerDAL = getRecordViewerObject();
+        viewerDAL = getMeshObject();
         StringBuilder content;
         try (BufferedReader in = new BufferedReader(new InputStreamReader(nhsNumbersRequest))) {
             String line;
@@ -62,7 +62,7 @@ public class MeshEndpoint {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response getOptedOutNhsNumbers(InputStream nhsNumbersRequest) throws Exception {
-        viewerDAL = getRecordViewerObject();
+        viewerDAL = getMeshObject();
         StringBuilder content;
         try (BufferedReader in = new BufferedReader(new InputStreamReader(nhsNumbersRequest))) {
             String line;
@@ -110,7 +110,7 @@ public class MeshEndpoint {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response getOptedInNhsNumbers (InputStream nhsNumbersRequest) throws Exception {
-        viewerDAL = getRecordViewerObject();
+        viewerDAL = getMeshObject();
         StringBuilder content;
         try (BufferedReader in = new BufferedReader(new InputStreamReader(nhsNumbersRequest))) {
             String line;
@@ -147,8 +147,8 @@ public class MeshEndpoint {
         return Response.ok().entity(optOutResJSON.toString()).build();
     }
 
-    RecordViewerJDBCDAL getRecordViewerObject() {
-        return new RecordViewerJDBCDAL();
+    MeshJDBCDAL getMeshObject() {
+        return new MeshJDBCDAL();
     }
 
     /**

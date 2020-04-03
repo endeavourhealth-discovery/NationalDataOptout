@@ -6,8 +6,8 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 
-public class RecordViewerJDBCDAL extends BaseJDBCDAL {
-    private static final Logger LOG = LoggerFactory.getLogger(RecordViewerJDBCDAL.class);
+public class MeshJDBCDAL extends BaseJDBCDAL {
+    private static final Logger LOG = LoggerFactory.getLogger(MeshJDBCDAL.class);
 
     /**
      *
