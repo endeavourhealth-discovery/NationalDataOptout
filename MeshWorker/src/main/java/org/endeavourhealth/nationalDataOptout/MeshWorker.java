@@ -118,9 +118,13 @@ public class MeshWorker {
             }
             bw.close();
 
+            JsonNode jsonConfig = ConfigManager.getConfigurationAsJson("meshconfig");
+            String workFlowId = jsonConfig.get("WorkflowId").asText();
+            String toDTS = jsonConfig.get("ToDTS").asText();
+
             DTSControl dtsControl = new DTSControl();
-            dtsControl.setWorkFlowId("X26HC036");
-            dtsControl.setToDTS("SPINE_NTT_UPHOLDING");
+            dtsControl.setWorkFlowId(workFlowId);
+            dtsControl.setToDTS(toDTS);
             dtsControl.setLocalId(localIdAndDate);
 
             FileWriter fwCf = new FileWriter(controlFile.getAbsoluteFile());
