@@ -3,7 +3,9 @@ package org.endeavourhealth.meshapi.common.dal;
 import org.endeavourhealth.meshapi.common.models.NationalOptoutStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.net.InetAddress;
 import java.sql.*;
 
 public class MeshJDBCDAL extends BaseJDBCDAL {
@@ -20,6 +22,30 @@ public class MeshJDBCDAL extends BaseJDBCDAL {
 
         try (PreparedStatement statement = conn.prepareStatement(sql)) {
             statement.setString(1, nhsNumber);
+            return statement.executeUpdate() == 1;
+        }
+    }
+
+    /**
+     *
+     * @return
+     * @throws Exception
+     */
+    public boolean insertAuditLog(String requestBody, String responseBody) throws Exception {
+        InetAddress ip = InetAddress.getLocalHost();
+        String sql = "INSERT INTO api_audit VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (PreparedStatement statement = conn.prepareStatement(sql)) {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            statement.setString(1, sdf.format(new Date()));
+            statement.setString(2, "");
+            statement.setString(3, ip.getHostAddress());
+            statement.setString(4, "");
+            statement.setString(5, "");
+            statement.setString(6, requestBody);
+            statement.setInt(7, 0);
+            statement.setString(8, responseBody);
+            statement.setInt(9, 0);
             return statement.executeUpdate() == 1;
         }
     }

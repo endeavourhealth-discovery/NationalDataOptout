@@ -19,7 +19,7 @@ import java.util.Date;
 @Path("mesh")
 public class MeshEndpoint {
     private static final Logger LOG = LoggerFactory.getLogger(MeshEndpoint.class);
-    MeshJDBCDAL viewerDAL;
+    MeshJDBCDAL meshDAL;
 
     /**
      *
@@ -32,7 +32,7 @@ public class MeshEndpoint {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response refreshNhsNumbers(InputStream nhsNumbersRequest) throws Exception {
-        viewerDAL = getMeshObject();
+        meshDAL = getMeshObject();
         StringBuilder content;
         try (BufferedReader in = new BufferedReader(new InputStreamReader(nhsNumbersRequest))) {
             String line;
@@ -46,8 +46,9 @@ public class MeshEndpoint {
 
         JSONArray nhsNumbersReqJSON = new JSONArray(content.toString());
         for (int nhsCount = 0; nhsCount < nhsNumbersReqJSON.length(); nhsCount++) {
-            boolean insertInd = viewerDAL.insertNhsNumbers((String) nhsNumbersReqJSON.get(nhsCount));
+            boolean insertInd = meshDAL.insertNhsNumbers((String) nhsNumbersReqJSON.get(nhsCount));
         }
+        meshDAL.insertAuditLog(content.toString(), "");
         return Response.ok().build();
     }
 
@@ -62,7 +63,7 @@ public class MeshEndpoint {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response getOptedOutNhsNumbers(InputStream nhsNumbersRequest) throws Exception {
-        viewerDAL = getMeshObject();
+        meshDAL = getMeshObject();
         StringBuilder content;
         try (BufferedReader in = new BufferedReader(new InputStreamReader(nhsNumbersRequest))) {
             String line;
@@ -83,12 +84,14 @@ public class MeshEndpoint {
             if(validInd == Boolean.FALSE) {
                 optOutResJSON.put(nationalOptoutStatus.getNhsNumber());
             }*/
-            NationalOptoutStatus nationalOptoutStatus = viewerDAL.getNhsDetails((String) nhsNumbersReqJSON.get(nhsCount));
+            NationalOptoutStatus nationalOptoutStatus = meshDAL.getNhsDetails((String) nhsNumbersReqJSON.get(nhsCount));
             if (nationalOptoutStatus == null) {
-                viewerDAL.insertNhsNumber((String) nhsNumbersReqJSON.get(nhsCount));
+                meshDAL.insertNhsNumber((String) nhsNumbersReqJSON.get(nhsCount));
+                meshDAL.insertAuditLog(content.toString(), "");
                 return Response.status(Response.Status.EXPECTATION_FAILED).build();
             } else if (sdf.parse(nationalOptoutStatus.getDtLastRefreshed()).compareTo(new Date()) > 7) {
-                viewerDAL.updateDate((String) nhsNumbersReqJSON.get(nhsCount));
+                meshDAL.updateDate((String) nhsNumbersReqJSON.get(nhsCount));
+                meshDAL.insertAuditLog(content.toString(), "");
                 return Response.status(Response.Status.EXPECTATION_FAILED).build();
             } else {
                 if(nationalOptoutStatus.getOptInStatus() == 0) {
@@ -96,6 +99,7 @@ public class MeshEndpoint {
                 }
             }
         }
+        meshDAL.insertAuditLog(content.toString(), optOutResJSON.toString());
         return Response.ok().entity(optOutResJSON.toString()).build();
     }
 
@@ -110,7 +114,7 @@ public class MeshEndpoint {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response getOptedInNhsNumbers (InputStream nhsNumbersRequest) throws Exception {
-        viewerDAL = getMeshObject();
+        meshDAL = getMeshObject();
         StringBuilder content;
         try (BufferedReader in = new BufferedReader(new InputStreamReader(nhsNumbersRequest))) {
             String line;
@@ -131,12 +135,14 @@ public class MeshEndpoint {
             if(validInd == Boolean.FALSE) {
                 optOutResJSON.put((String) nhsNumbersReqJSON.get(nhsCount));
             }
-            NationalOptoutStatus nationalOptoutStatus = viewerDAL.getNhsDetails((String) nhsNumbersReqJSON.get(nhsCount));
+            NationalOptoutStatus nationalOptoutStatus = meshDAL.getNhsDetails((String) nhsNumbersReqJSON.get(nhsCount));
             if (nationalOptoutStatus == null) {
                 //insert new row
+                meshDAL.insertAuditLog(content.toString(), "");
                 return Response.status(Response.Status.EXPECTATION_FAILED).build();
             } else if (sdf.parse(nationalOptoutStatus.getDtLastRefreshed()).compareTo(new Date()) > 7) {
                 //update date
+                meshDAL.insertAuditLog(content.toString(), "");
                 return Response.status(Response.Status.EXPECTATION_FAILED).build();
             } else {
                 if(nationalOptoutStatus.getOptInStatus() == 1) {
@@ -144,6 +150,7 @@ public class MeshEndpoint {
                 }
             }
         }
+        meshDAL.insertAuditLog(content.toString(), optOutResJSON.toString());
         return Response.ok().entity(optOutResJSON.toString()).build();
     }
 
