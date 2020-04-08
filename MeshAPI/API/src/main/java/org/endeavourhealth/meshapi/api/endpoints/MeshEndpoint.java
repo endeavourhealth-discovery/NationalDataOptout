@@ -137,11 +137,11 @@ public class MeshEndpoint {
             }
             NationalOptoutStatus nationalOptoutStatus = meshDAL.getNhsDetails((String) nhsNumbersReqJSON.get(nhsCount));
             if (nationalOptoutStatus == null) {
-                //insert new row
+                meshDAL.insertNhsNumber((String) nhsNumbersReqJSON.get(nhsCount));
                 meshDAL.insertAuditLog(content.toString(), "");
                 return Response.status(Response.Status.EXPECTATION_FAILED).build();
             } else if (sdf.parse(nationalOptoutStatus.getDtLastRefreshed()).compareTo(new Date()) > 7) {
-                //update date
+                meshDAL.updateDate((String) nhsNumbersReqJSON.get(nhsCount));
                 meshDAL.insertAuditLog(content.toString(), "");
                 return Response.status(Response.Status.EXPECTATION_FAILED).build();
             } else {
