@@ -11,42 +11,32 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.Scanner;
 
 public class OptOutFeeder {
     private static final Logger LOG = LoggerFactory.getLogger(OptOutFeeder.class);
 
     public static void main(String[] args) throws Exception {
         try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-
             ConfigManager.Initialize("optout-feeder");
-            JsonNode json = ConfigManager.getConfigurationAsJson("database");
-            String url = json.get("url").asText();
-            String user = json.get("username").asText();
-            String pass = json.get("password").asText();
-            String driver = json.get("class") == null ? null : json.get("class").asText();
-
-            if (driver != null && !driver.isEmpty())
-                Class.forName(driver);
-
-            Properties props = new Properties();
-            props.setProperty("user", user);
-            props.setProperty("password", pass);
-
-            Connection connection = DriverManager.getConnection(url, props);    // NOSONAR
+            Connection connection = null;
+            connection = ConnectionManager.getNonPooledConnection();
 
             JSONArray nhsNumbers = fetchNHSNumbers(connection);
-            writeCurrentDataTimeToFile();
             callRefreshNhsNumbers(nhsNumbers);
+            writeCurrentDataTimeToFile();
 
             incSize();
         } catch (Exception e) {
-            LOG.error(e.getMessage());
+            LOG.error("Unable to connect to database", e.getMessage());
         }
     }
 
@@ -56,7 +46,7 @@ public class OptOutFeeder {
      */
     private static void callRefreshNhsNumbers(JSONArray nhsNumbers) {
         try {
-            JsonNode json = ConfigManager.getConfigurationAsJson("meshpath");
+            JsonNode json = ConfigManager.getConfigurationAsJson("batchrunlocation");
             String host = json.get("host").asText();
             URL url = new URL(host+"/api/mesh/refreshNhsNumbers");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -77,15 +67,14 @@ public class OptOutFeeder {
             BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
             String output;
             while ((output = br.readLine()) != null) {
-                System.out.println(output);
+                LOG.debug(output);
             }
-
             conn.disconnect();
 
         } catch (MalformedURLException e) {
-            e.printStackTrace();
+            LOG.error("Exception occured while trying to connect with the Endpoint URL", e.getMessage());
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error("Exception occured while Input/Output Operation", e.getMessage());
         }
     }
 
@@ -97,9 +86,9 @@ public class OptOutFeeder {
             DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             Date today = Calendar.getInstance().getTime();
             String reportDate = df.format(today);
-            JsonNode json = ConfigManager.getConfigurationAsJson("meshpath");
+            JsonNode json = ConfigManager.getConfigurationAsJson("batchrunlocation");
             String rootDirectory = json.get("rootdirectory").asText();
-            File file = new File(rootDirectory+"reportDate.txt");
+            File file = new File(rootDirectory+"OptoutFeederLastRunDate.txt");
             if (!file.exists()) {
                 file.createNewFile();
             }
@@ -124,13 +113,15 @@ public class OptOutFeeder {
 
         String date = null;
         try {
-            JsonNode json = ConfigManager.getConfigurationAsJson("meshpath");
+            JsonNode json = ConfigManager.getConfigurationAsJson("batchrunlocation");
             String rootDirectory = json.get("rootdirectory").asText();
-            File file = new File(rootDirectory+"reportDate.txt");
-            Scanner sc = new Scanner(file);
+            File file = new File(rootDirectory+"OptoutFeederLastRunDate.txt");
+            if (file.exists()) {
+                Scanner sc = new Scanner(file);
 
-            while (sc.hasNextLine())
-                date = sc.nextLine();
+                while (sc.hasNextLine())
+                    date = sc.nextLine();
+            }
         } catch(Exception e) {
             LOG.info("File not found");
         }

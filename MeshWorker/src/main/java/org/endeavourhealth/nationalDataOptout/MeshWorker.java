@@ -19,10 +19,13 @@ import javax.xml.bind.Marshaller;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.*;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
 import java.util.Date;
 
 public class MeshWorker {
@@ -31,24 +34,9 @@ public class MeshWorker {
     public static void main(String[] args) throws Exception {
 
         try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-
             ConfigManager.Initialize("mesh-api");
-            JsonNode json = ConfigManager.getConfigurationAsJson("database");
-            String url = json.get("url").asText();
-            String user = json.get("username").asText();
-            String pass = json.get("password").asText();
-            String driver = json.get("class") == null ? null : json.get("class").asText();
-
-            if (driver != null && !driver.isEmpty())
-                Class.forName(driver);
-
-            Properties props = new Properties();
-
-            props.setProperty("user", user);
-            props.setProperty("password", pass);
-
-            Connection connection = DriverManager.getConnection(url, props);
+            Connection connection = null;
+            connection = ConnectionManager.getNonPooledConnection();
 
             JSONArray nhsNumbers = fetchNHSNumbers(connection);
             writeNhsNumbersToFile(nhsNumbers, connection);

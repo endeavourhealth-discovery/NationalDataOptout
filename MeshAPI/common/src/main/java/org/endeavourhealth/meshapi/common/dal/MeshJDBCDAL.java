@@ -18,7 +18,7 @@ public class MeshJDBCDAL extends BaseJDBCDAL {
      * @throws Exception
      */
     public boolean insertNhsNumbers(String nhsNumber) throws Exception {
-        String sql = "INSERT IGNORE INTO national_opt_out_status VALUES (?, null, null)";
+        String sql = "INSERT IGNORE INTO national_opt_out_status(nhs_number) VALUES (?)";
 
         try (PreparedStatement statement = conn.prepareStatement(sql)) {
             statement.setString(1, nhsNumber);
