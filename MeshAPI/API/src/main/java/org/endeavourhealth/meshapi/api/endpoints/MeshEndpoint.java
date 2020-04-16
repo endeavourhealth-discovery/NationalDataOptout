@@ -32,6 +32,7 @@ public class MeshEndpoint {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response refreshNhsNumbers(InputStream nhsNumbersRequest) throws Exception {
+        long startTime = System.currentTimeMillis();
         meshDAL = getMeshObject();
         StringBuilder content;
         try (BufferedReader in = new BufferedReader(new InputStreamReader(nhsNumbersRequest))) {
@@ -48,7 +49,8 @@ public class MeshEndpoint {
         for (int nhsCount = 0; nhsCount < nhsNumbersReqJSON.length(); nhsCount++) {
             boolean insertInd = meshDAL.insertNhsNumbers((String) nhsNumbersReqJSON.get(nhsCount));
         }
-        meshDAL.insertAuditLog(content.toString(), "");
+        long endTime = System.currentTimeMillis();
+        meshDAL.insertAuditLog(content.toString(), "", endTime - startTime, "api/mesh/refreshNhsNumbers");
         return Response.ok().build();
     }
 
@@ -63,6 +65,7 @@ public class MeshEndpoint {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response getOptedOutNhsNumbers(InputStream nhsNumbersRequest) throws Exception {
+        long startTime = System.currentTimeMillis();
         meshDAL = getMeshObject();
         StringBuilder content;
         try (BufferedReader in = new BufferedReader(new InputStreamReader(nhsNumbersRequest))) {
@@ -87,11 +90,13 @@ public class MeshEndpoint {
             NationalOptoutStatus nationalOptoutStatus = meshDAL.getNhsDetails((String) nhsNumbersReqJSON.get(nhsCount));
             if (nationalOptoutStatus == null) {
                 meshDAL.insertNhsNumber((String) nhsNumbersReqJSON.get(nhsCount));
-                meshDAL.insertAuditLog(content.toString(), "");
+                long endTime = System.currentTimeMillis();
+                meshDAL.insertAuditLog(content.toString(), "", endTime - startTime, "api/mesh/getOptedOutNhsNumbers");
                 return Response.status(Response.Status.EXPECTATION_FAILED).build();
             } else if (sdf.parse(nationalOptoutStatus.getDtLastRefreshed()).compareTo(new Date()) > 7) {
                 meshDAL.updateDate((String) nhsNumbersReqJSON.get(nhsCount));
-                meshDAL.insertAuditLog(content.toString(), "");
+                long endTime = System.currentTimeMillis();
+                meshDAL.insertAuditLog(content.toString(), "", endTime - startTime, "api/mesh/getOptedOutNhsNumbers");
                 return Response.status(Response.Status.EXPECTATION_FAILED).build();
             } else {
                 if(nationalOptoutStatus.getOptInStatus() == 0) {
@@ -99,7 +104,8 @@ public class MeshEndpoint {
                 }
             }
         }
-        meshDAL.insertAuditLog(content.toString(), optOutResJSON.toString());
+        long endTime = System.currentTimeMillis();
+        meshDAL.insertAuditLog(content.toString(), optOutResJSON.toString(), endTime - startTime, "api/mesh/getOptedOutNhsNumbers");
         return Response.ok().entity(optOutResJSON.toString()).build();
     }
 
@@ -114,6 +120,7 @@ public class MeshEndpoint {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response getOptedInNhsNumbers (InputStream nhsNumbersRequest) throws Exception {
+        long startTime = System.currentTimeMillis();
         meshDAL = getMeshObject();
         StringBuilder content;
         try (BufferedReader in = new BufferedReader(new InputStreamReader(nhsNumbersRequest))) {
@@ -138,11 +145,13 @@ public class MeshEndpoint {
             NationalOptoutStatus nationalOptoutStatus = meshDAL.getNhsDetails((String) nhsNumbersReqJSON.get(nhsCount));
             if (nationalOptoutStatus == null) {
                 meshDAL.insertNhsNumber((String) nhsNumbersReqJSON.get(nhsCount));
-                meshDAL.insertAuditLog(content.toString(), "");
+                long endTime = System.currentTimeMillis();
+                meshDAL.insertAuditLog(content.toString(), "", endTime - startTime, "api/mesh/getOptedInNhsNumbers");
                 return Response.status(Response.Status.EXPECTATION_FAILED).build();
             } else if (sdf.parse(nationalOptoutStatus.getDtLastRefreshed()).compareTo(new Date()) > 7) {
                 meshDAL.updateDate((String) nhsNumbersReqJSON.get(nhsCount));
-                meshDAL.insertAuditLog(content.toString(), "");
+                long endTime = System.currentTimeMillis();
+                meshDAL.insertAuditLog(content.toString(), "", endTime - startTime, "api/mesh/getOptedInNhsNumbers");
                 return Response.status(Response.Status.EXPECTATION_FAILED).build();
             } else {
                 if(nationalOptoutStatus.getOptInStatus() == 1) {
@@ -150,7 +159,8 @@ public class MeshEndpoint {
                 }
             }
         }
-        meshDAL.insertAuditLog(content.toString(), optOutResJSON.toString());
+        long endTime = System.currentTimeMillis();
+        meshDAL.insertAuditLog(content.toString(), optOutResJSON.toString(), endTime - startTime, "api/mesh/getOptedInNhsNumbers");
         return Response.ok().entity(optOutResJSON.toString()).build();
     }
 

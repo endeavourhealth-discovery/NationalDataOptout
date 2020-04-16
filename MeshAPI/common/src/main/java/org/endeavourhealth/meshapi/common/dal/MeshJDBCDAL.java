@@ -31,7 +31,7 @@ public class MeshJDBCDAL extends BaseJDBCDAL {
      * @return
      * @throws Exception
      */
-    public boolean insertAuditLog(String requestBody, String responseBody) throws Exception {
+    public boolean insertAuditLog(String requestBody, String responseBody, long duration, String reqPath) throws Exception {
         InetAddress ip = InetAddress.getLocalHost();
         String sql = "INSERT INTO api_audit VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
@@ -40,12 +40,12 @@ public class MeshJDBCDAL extends BaseJDBCDAL {
             statement.setString(1, sdf.format(new Date()));
             statement.setString(2, "");
             statement.setString(3, ip.getHostAddress());
-            statement.setString(4, "");
+            statement.setString(4, reqPath);
             statement.setString(5, "");
             statement.setString(6, requestBody);
             statement.setInt(7, 0);
             statement.setString(8, responseBody);
-            statement.setInt(9, 0);
+            statement.setInt(9, (int) duration);
             return statement.executeUpdate() == 1;
         }
     }
