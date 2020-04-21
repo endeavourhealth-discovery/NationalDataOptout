@@ -32,11 +32,11 @@ public class OptOutFeeder {
 
             JSONArray nhsNumbers = fetchNHSNumbers(connection);
             callRefreshNhsNumbers(nhsNumbers);
-            writeCurrentDataTimeToFile();
+            writeCurrentDateTimeToFile();
 
             incSize();
         } catch (Exception e) {
-            LOG.error("Unable to connect to database", e.getMessage());
+            LOG.error("Error while performing operations to get NHS numbers from eds DB to mesh-db DB", e.getMessage());
         }
     }
 
@@ -81,7 +81,7 @@ public class OptOutFeeder {
     /**
      *
      */
-    private static void writeCurrentDataTimeToFile() {
+    private static void writeCurrentDateTimeToFile() {
         try {
             DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             Date today = Calendar.getInstance().getTime();
@@ -97,7 +97,7 @@ public class OptOutFeeder {
             bw.write(reportDate);
             bw.close();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("Exception occured while writing current date to the file", e.getMessage());
         }
     }
 
@@ -110,12 +110,12 @@ public class OptOutFeeder {
     private static JSONArray fetchNHSNumbers(Connection connection) throws SQLException {
         JSONArray nhsNumbers = new JSONArray();
         DateFormat df1 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
+        File file = null;
         String date = null;
         try {
             JsonNode json = ConfigManager.getConfigurationAsJson("batchrunlocation");
             String rootDirectory = json.get("rootdirectory").asText();
-            File file = new File(rootDirectory+"OptoutFeederLastRunDate.txt");
+            file = new File(rootDirectory+"OptoutFeederLastRunDate.txt");
             if (file.exists()) {
                 Scanner sc = new Scanner(file);
 
@@ -126,7 +126,7 @@ public class OptOutFeeder {
             LOG.info("File not found");
         }
 
-        if(date == null || date.isEmpty()) {
+        if(file == null || !file.exists() || date == null || date.isEmpty()) {
             String sql = "SELECT nhs_number FROM patient_search WHERE nhs_number IS NOT NULL";
             try (PreparedStatement statement = connection.prepareStatement(sql)) {
                 try (ResultSet resultSet = statement.executeQuery()) {

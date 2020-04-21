@@ -27,6 +27,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public class MeshWorker {
     private static final Logger LOG = LoggerFactory.getLogger(MeshWorker.class);
@@ -34,20 +35,20 @@ public class MeshWorker {
     public static void main(String[] args) throws Exception {
 
         try {
-            ConfigManager.Initialize("mesh-api");
+            ConfigManager.Initialize("mesh-worker");
             Connection connection = null;
             connection = ConnectionManager.getNonPooledConnection();
 
-            JSONArray nhsNumbers = fetchNHSNumbers(connection);
+            List<String> nhsNumbers = fetchNHSNumbers(connection);
             writeNhsNumbersToFile(nhsNumbers, connection);
-            JSONArray optedInNhsNumbers = readNhsNumbersFromFile(connection);
-            for(int nhsCount=0; nhsCount<optedInNhsNumbers.length(); nhsCount++) {
+            List<String> optedInNhsNumbers = readNhsNumbersFromFile(connection);
+            for(int nhsCount=0; nhsCount<optedInNhsNumbers.size(); nhsCount++) {
                 saveStatusToDB((String) optedInNhsNumbers.get(nhsCount), connection);
             }
 
             incSize();
         } catch (Exception e) {
-            LOG.error(e.getMessage());
+            LOG.error("Error while performing operations to update the status for NHS numbers", e.getMessage());
         }
     }
 
@@ -61,14 +62,16 @@ public class MeshWorker {
      * @return
      * @throws SQLException
      */
-    private static JSONArray fetchNHSNumbers(Connection connection) throws SQLException {
-        JSONArray nhsNumbers = new JSONArray();
+    private static List<String> fetchNHSNumbers(Connection connection) throws Exception {
+        List<String> nhsNumbers = new ArrayList<String>();
 
-        String sql = "SELECT nhs_number FROM national_opt_out_status WHERE (dt_last_refreshed < CURRENT_DATE - INTERVAL 4 DAY OR dt_last_refreshed is NULL) AND local_id is NULL";
+        JsonNode json = ConfigManager.getConfigurationAsJson("meshconfig");
+        Integer intervalDay = json.get("IntervalDay").asInt();
+        String sql = "SELECT nhs_number FROM national_opt_out_status WHERE (dt_last_refreshed < CURRENT_DATE - INTERVAL "+intervalDay+" DAY OR dt_last_refreshed is NULL) AND local_id is NULL";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
-                    nhsNumbers.put(resultSet.getString("nhs_number"));
+                    nhsNumbers.add(resultSet.getString("nhs_number"));
                 }
             }
         }
@@ -79,10 +82,10 @@ public class MeshWorker {
      *
      * @param nhsNumbers
      */
-    private static void writeNhsNumbersToFile(JSONArray nhsNumbers, Connection connection) {
+    private static void writeNhsNumbersToFile(List<String> nhsNumbers, Connection connection) {
         try {
             JsonNode json = ConfigManager.getConfigurationAsJson("meshpath");
-            String rootDirectory = json.get("rootdirectory").asText();
+            String rootDirectory = json.get("outboxDirectory").asText();
             String localId = RandomStringUtils.randomAlphabetic(5);
             File directory = new File(rootDirectory.concat("MESH_Outbox"));
             DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
@@ -94,12 +97,14 @@ public class MeshWorker {
                 directory.mkdir();
                 if(!file.exists()) {
                     file.createNewFile();
+                }
+                if(!controlFile.exists()) {
                     controlFile.createNewFile();
                 }
             }
             FileWriter fw = new FileWriter(file.getAbsoluteFile());
             BufferedWriter bw = new BufferedWriter(fw);
-            for(int nhsCount=0; nhsCount<nhsNumbers.length(); nhsCount++) {
+            for(int nhsCount=0; nhsCount<nhsNumbers.size(); nhsCount++) {
                 String nhsNum = (String) nhsNumbers.get(nhsCount);
                 bw.write(nhsNum+",\r\n");
                 updateLocalIdToDB(nhsNum, localId, connection);
@@ -117,11 +122,11 @@ public class MeshWorker {
 
             FileWriter fwCf = new FileWriter(controlFile.getAbsoluteFile());
             BufferedWriter bwCf = new BufferedWriter(fwCf);
-            bwCf.write(jaxbObjectToXML(dtsControl)+",\r\n");
+            bwCf.write(jaxbObjectToXML(dtsControl));
             bwCf.close();
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("Error while writing NHS numbers to dat file and creating control file", e.getMessage());
         }
     }
 
@@ -139,7 +144,7 @@ public class MeshWorker {
             jaxbMarshaller.marshal(dtsControl, sw);
 
         } catch (JAXBException e) {
-            e.printStackTrace();
+            LOG.error("Error while converting object to XML", e.getMessage());
         }
         return sw.toString();
     }
@@ -148,10 +153,10 @@ public class MeshWorker {
      *
      * @return
      */
-    private static JSONArray readNhsNumbersFromFile(Connection connection) throws Exception {
-        JSONArray nhsNumbers = new JSONArray();
+    private static List<String> readNhsNumbersFromFile(Connection connection) throws Exception {
+        List<String> nhsNumbers = new ArrayList<String>();
         JsonNode json = ConfigManager.getConfigurationAsJson("meshpath");
-        String rootDirectory = json.get("rootdirectory").asText();
+        String rootDirectory = json.get("inboxDirectory").asText();
         File directory = new File(rootDirectory.concat("MESH_Inbox"));
         File[] listingAllFiles = directory.listFiles();
         ArrayList<File> allFiles = iterateOverFiles(listingAllFiles);
@@ -162,12 +167,12 @@ public class MeshWorker {
                     String line;
                     while ((line = br.readLine()) != null) {
                         line = line.substring(0, line.length() - 1);
-                        nhsNumbers.put(line);
+                        nhsNumbers.add(line);
                     }
                 } catch (FileNotFoundException e) {
-                    e.printStackTrace();
+                    LOG.error("Error while checking for the specified file", e.getMessage());
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    LOG.error("Error while reading from the file", e.getMessage());
                 }
                 if(file.renameTo(new File(rootDirectory+"MESH_Inbox_Archive\\"+file.getName()))) {
                     file.delete();
@@ -190,7 +195,11 @@ public class MeshWorker {
                     Element eElement = (Element) elemNode;
                     String localId = eElement.getElementsByTagName("LocalId").item(0).getTextContent();
                     String[] local = localId.split("_");
-                    saveStatusToDBLocalId(local[0], (local[1].substring(0,4))+"-"+(local[1].substring(4,6))+"-"+(local[1].substring(6,8)), connection);
+                    String locId = local[0];
+
+                    DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    String date = (local[1].substring(0,4))+"-"+(local[1].substring(4,6))+"-"+(local[1].substring(6,8))+" "+(local[2].substring(0,2))+":"+(local[2].substring(2,4)) ;
+                    saveStatusToDBLocalId(locId, dateFormat.format(date), connection);
                 }
                 if(controlFile.renameTo(new File(rootDirectory+"MESH_Inbox_Archive\\"+controlFile.getName()))) {
                     controlFile.delete();
