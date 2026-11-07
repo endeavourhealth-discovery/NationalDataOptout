@@ -103,7 +103,7 @@
             <snapshots />
             <id>snapshots</id>
             <name>libs-snapshot</name>
-            <url>http://maven.endeavourhealth.net:8081/artifactory/libs-snapshot</url>
+            <url>https://maven.endeavourhealth.net/artifactory/libs-snapshot</url>
         </repository>
     </repositories>
 
@@ -111,7 +111,7 @@
         <snapshotRepository>
             <id>snapshots</id>
             <name>maven.endeavourhealth.org-snapshots</name>
-            <url>http://maven.endeavourhealth.net:8081/artifactory/libs-snapshot-local</url>
+            <url>https://maven.endeavourhealth.net/artifactory/libs-snapshot-local</url>
         </snapshotRepository>
     </distributionManagement>
 
